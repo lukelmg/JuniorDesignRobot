@@ -95,7 +95,6 @@ void setup() {
   Serial.begin(9600);
 
   Gripper.attach(GripperPin);
-  system.setAcceleration(100).setSpeed(100);
 
   pinMode(buttonLpin, INPUT_PULLUP);
   pinMode(buttonRpin, INPUT_PULLUP);

@@ -115,10 +115,8 @@ public:
     GoToPosition& moveX(int X) {
         // insert inverse kinematics equation here
         int invRA1 = X;
-        int invRA2 = Y;
 
         RA1->setPosition(invRA1);
-        RA2->setPosition(invRA2);
         return *this;
     }
 
@@ -146,7 +144,7 @@ public:
     }
 };
 
-GoToPosition system(&P1, &RA1, &RA2);
+GoToPosition Robot(&P1, &RA1, &RA2);
 
 /* Pickup Positions at Each Table Position */
 const float pickupCoordinates[9][3] = {
@@ -158,15 +156,15 @@ const float pickupCoordinates[9][3] = {
 /* Dropoff Positions at Each Grid Position */
 const float redCoordinates[3][3] = {
   {100, 100, 100}, {100, 100, 100}, {100, 100, 100}
-}
+};
 
 const float greenCoordinates[3][3] = {
   {100, 100, 100}, {100, 100, 100}, {100, 100, 100}
-}
+};
 
 const float blueCoordinates[3][3] = {
   {100, 100, 100}, {100, 100, 100}, {100, 100, 100}
-}
+};
 
 // Safe retracted back position in X direction
 int safeXPosition = 100;
@@ -181,7 +179,7 @@ void setup() {
   Serial.begin(9600);
 
   Gripper.attach(GripperPin);
-  system.setAcceleration(100).setSpeed(100);
+  Robot.setAcceleration(100).setSpeed(100);
 
   /* Check for Color Sensor */
   if (tcs.begin()) {
@@ -195,46 +193,46 @@ void setup() {
 void loop() {
   if (currentCoordinate < 9) {
     // Open Gripper
-    gripperOpen();
+    GripperOpen();
 
     // Go to Table Position
-    system.moveTo(pickupCoordinates[currentCoordinate][0], pickupCoordinates[currentCoordinate][1], pickupCoordinates[currentCoordinate][2]);
-    system.run();
+    Robot.moveTo(pickupCoordinates[currentCoordinate][0], pickupCoordinates[currentCoordinate][1], pickupCoordinates[currentCoordinate][2]);
+    Robot.run();
 
     // Grab Cube
-    gripperClose();
+    GripperClose();
 
     // Detect Color
     char currentColor = readColorSensor();
 
     // Go to Table Safe Position
-    system.moveTo(safeXPosition, pickupCoordinates[currentCoordinate][1], pickupCoordinates[currentCoordinate][2] + 20);
-    system.run();
+    Robot.moveTo(safeXPosition, pickupCoordinates[currentCoordinate][1], pickupCoordinates[currentCoordinate][2] + 20);
+    Robot.run();
 
     // Based on color, go to different grid dropoff positions
     if (currentColor == 'R') {
-        system.moveTo(safeXPosition, redCoordinates[Rcount][1], redCoordinates[Rcount][2]);
-        system.run();
-        system.moveX(100);
-        system.run();
+        Robot.moveTo(safeXPosition, redCoordinates[Rcount][1], redCoordinates[Rcount][2]);
+        Robot.run();
+        Robot.moveX(100);
+        Robot.run();
         Rcount++;
     } else if (currentColor == 'G') {
-        system.moveTo(safeXPosition, greenCoordinates[Gcount][1], greenCoordinates[Gcount][2]);
-        system.run();
-        system.moveX(100);
-        system.run();
+        Robot.moveTo(safeXPosition, greenCoordinates[Gcount][1], greenCoordinates[Gcount][2]);
+        Robot.run();
+        Robot.moveX(100);
+        Robot.run();
         Gcount++;
     } else if (currentColor == 'B') {
-        system.moveTo(safeXPosition, blueCoordinates[Bcount][1], blueCoordinates[Bcount][2]);
-        system.run();
-        system.moveX(100);
-        system.run();
+        Robot.moveTo(safeXPosition, blueCoordinates[Bcount][1], blueCoordinates[Bcount][2]);
+        Robot.run();
+        Robot.moveX(100);
+        Robot.run();
         Bcount++;
     }
 
-    gripperOpen();
+    GripperOpen();
 
-    system.moveX(50);
+    Robot.moveX(50);
 
     currentCoordinate++;
   }
