@@ -150,24 +150,25 @@ GoToPosition system(&P1, &RA1, &RA2);
 
 /* Pickup Positions at Each Table Position */
 const float pickupCoordinates[9][3] = {
-  {100, 200, 300}, {150, 250, 350}, {200, 300, 400},
-  {250, 350, 450}, {300, 400, 500}, {350, 450, 550},
-  {400, 500, 600}, {450, 550, 650}, {500, 600, 700}
+  {100, 100, 100}, {100, 100, 100}, {100, 100, 100},
+  {100, 100, 100}, {100, 100, 100}, {100, 100, 100},
+  {100, 100, 100}, {100, 100, 100}, {100, 100, 100}
 };
 
 /* Dropoff Positions at Each Grid Position */
 const float redCoordinates[3][3] = {
-  {100, 200, 300}, {150, 250, 350}, {200, 300, 400}
+  {100, 100, 100}, {100, 100, 100}, {100, 100, 100}
 }
 
 const float greenCoordinates[3][3] = {
-  {100, 200, 300}, {150, 250, 350}, {200, 300, 400}
+  {100, 100, 100}, {100, 100, 100}, {100, 100, 100}
 }
 
 const float blueCoordinates[3][3] = {
-  {100, 200, 300}, {150, 250, 350}, {200, 300, 400}
+  {100, 100, 100}, {100, 100, 100}, {100, 100, 100}
 }
 
+// Safe retracted back position in X direction
 int safeXPosition = 100;
 
 int currentCoordinate = 0;
