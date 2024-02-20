@@ -1,6 +1,8 @@
 #include <AccelStepper.h>
 #include <Servo.h>
 
+
+/* Defines Motor Pins for Wiring */
 const int P1motorPin1 = 2;
 const int P1motorPin2 = 3;
 const int RA1motorPin1 = 4;
@@ -9,10 +11,23 @@ const int RA2motorPin1 = 6;
 const int RA2motorPin2 = 7;
 const int GripperPin = 9;
 
+/* Defining Axis Motors via AccelStepper */
 AccelStepper P1motor(AccelStepper::DRIVER, P1motorPin1, P1motorPin2);
 AccelStepper RA1motor(AccelStepper::DRIVER, RA1motorPin1, RA1motorPin2);
 AccelStepper RA2motor(AccelStepper::DRIVER, RA2motorPin1, RA2motorPin2);
+
+/* Gripper Motor Definitions */
 Servo Gripper;
+const int gripperOpenPos = 0;
+const int gripperClosedPos = 180;
+
+void GripperOpen() {
+    Gripper.write(gripperOpenPos);
+}
+
+void GripperClose() { 
+    Gripper.write(gripperClosedPos);
+}
 
 class Axis {
     AccelStepper* motor;
@@ -99,6 +114,8 @@ const float gridCoordinates[9][3] = {
   {400, 500, 600}, {450, 550, 650}, {500, 600, 700}
 };
 
+int safeXPosition = 100;
+
 int currentCoordinate = 0;
 
 void setup() {
@@ -108,11 +125,23 @@ void setup() {
 
 void loop() {
   if (currentCoordinate < 9) {
+    gripperOpen();
+
+    delay(1000);
+
     system.moveTo(pickupCoordinates[currentCoordinate][0], pickupCoordinates[currentCoordinate][1], pickupCoordinates[currentCoordinate][2]);
     system.run();
 
+    delay(1000);
 
-    delay(2000);
+    gripperClose();
+
+    delay(1000);
+
+    system.moveTo(safeXPosition, pickupCoordinates[currentCoordinate][1], pickupCoordinates[currentCoordinate][2]);
+    system.run();
+
+    delay(1000);
 
     currentCoordinate++;
   }
