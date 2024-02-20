@@ -100,23 +100,26 @@ public:
     GoToPosition(Axis *p1, Axis *ra1, Axis *ra2)
         : P1(p1), RA1(ra1), RA2(ra2) {}
 
-    GoToPosition& moveTo(int X, int Y, int Z) {
-        // insert inverse kinematics equation here
-        int invP1 = X;
-        int invRA1 = Y;
-        int invRA2 = Z;
+    GoToPosition& moveTo(float X, int Y, float Z) {
+        const float L1 = 200.0;
+        const float L2 = 150.0;
+
+        const int pitch = 5;
+        const int stepsPerRevolution = 200;
+
+        float x = static_cast<float>(X);
+        float z = static_cast<float>(Z);
+
+        float theta1 = atan2(z, x) - atan2(L2 * sin(theta2), L1 + L2 * cos(theta2));
+        float theta2 = acos((x*x + z*z - L1*L1 - L2*L2) / (2 * L1 * L2));
+
+        int invP1 = stepsPerRevolution * Y / pitch;
+        int invRA1 = static_cast<int>(theta1);
+        int invRA2 = static_cast<int>(theta2);
 
         P1->setPosition(invP1);
         RA1->setPosition(invRA1);
         RA2->setPosition(invRA2);
-        return *this;
-    }
-
-    GoToPosition& moveX(int X) {
-        // insert inverse kinematics equation here
-        int invRA1 = X;
-
-        RA1->setPosition(invRA1);
         return *this;
     }
 
@@ -148,22 +151,22 @@ GoToPosition Robot(&P1, &RA1, &RA2);
 
 /* Pickup Positions at Each Table Position */
 const float pickupCoordinates[9][3] = {
-  {100, 100, 100}, {100, 100, 100}, {100, 100, 100},
-  {100, 100, 100}, {100, 100, 100}, {100, 100, 100},
-  {100, 100, 100}, {100, 100, 100}, {100, 100, 100}
+  {205.20, 0.00, 66.20}, {205.20, 0.00, 40.80}, {205.20, 0.00, 15.40},
+  {270.60, 0.00, 66.20}, {270.60, 0.00, 40.80}, {270.60, 0.00, 15.40},
+  {336.00, 0.00, 66.20}, {336.00, 0.00, 40.80}, {336.00, 0.00, 15.40}
 };
 
 /* Dropoff Positions at Each Grid Position */
 const float redCoordinates[3][3] = {
-  {100, 100, 100}, {100, 100, 100}, {100, 100, 100}
+  {212.0, 262.3, 200.0}, {212.0, 262.3, 110.0}, {212.0, 262.3, 20.0}
 };
 
 const float greenCoordinates[3][3] = {
-  {100, 100, 100}, {100, 100, 100}, {100, 100, 100}
+  {212.0, 133.52, 200.0}, {212.0, 133.52, 110.0}, {212.0, 133.52, 110.0}
 };
 
 const float blueCoordinates[3][3] = {
-  {100, 100, 100}, {100, 100, 100}, {100, 100, 100}
+  {212.0, 390.78, 200.0}, {212.0, 390.78, 110.0}, {212.0, 390.78, 20.0}
 };
 
 // Safe retracted back position in X direction
@@ -183,9 +186,9 @@ void setup() {
 
   /* Check for Color Sensor */
   if (tcs.begin()) {
-    Serial.println("Found sensor");
+    Serial.println("Sensor found");
   } else {
-    Serial.println("No TCS34725 found ... check your connections");
+    Serial.println("No sensor found");
     while (1);
   }
 }
@@ -213,26 +216,24 @@ void loop() {
     if (currentColor == 'R') {
         Robot.moveTo(safeXPosition, redCoordinates[Rcount][1], redCoordinates[Rcount][2]);
         Robot.run();
-        Robot.moveX(100);
+        Robot.moveTo(safeXPosition+100.0, redCoordinates[Rcount][1], redCoordinates[Rcount][2]);
         Robot.run();
         Rcount++;
     } else if (currentColor == 'G') {
         Robot.moveTo(safeXPosition, greenCoordinates[Gcount][1], greenCoordinates[Gcount][2]);
         Robot.run();
-        Robot.moveX(100);
+        Robot.moveTo(safeXPosition+100.0, greenCoordinates[Gcount][1], greenCoordinates[Gcount][2]);
         Robot.run();
         Gcount++;
     } else if (currentColor == 'B') {
         Robot.moveTo(safeXPosition, blueCoordinates[Bcount][1], blueCoordinates[Bcount][2]);
         Robot.run();
-        Robot.moveX(100);
+        Robot.moveTo(safeXPosition+100.0, blueCoordinates[Bcount][1], blueCoordinates[Bcount][2]);
         Robot.run();
         Bcount++;
     }
 
     GripperOpen();
-
-    Robot.moveX(50);
 
     currentCoordinate++;
   }
