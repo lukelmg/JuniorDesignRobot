@@ -1,3 +1,9 @@
+Color Sensor Documentation: https://learn.adafruit.com/adafruit-color-sensors/arduino-code
+Accelstepper Documentation: https://www.airspayce.com/mikem/arduino/AccelStepper/classAccelStepper.html
+
+
+ChatGPT Prompt:
+
 Create arduino code for 3 stepper motors and 1 servo motor. 1 Stepper motor will be hooked up to a linear axis called P1 and the other 2 stepper motors will be hooked up to rotational axis called RA1 and RA2. The servo motor is for a gripper. Do this with the easymotor library. Create functions for each axis of movements where I can set the speed and acceleration and where to go. This is for a robotic system so make educated guesses on how I would want the code to go to certain positions.
 
 
