@@ -23,6 +23,9 @@ SpeedyStepper stepper_P1;
 const float L1 = 200.0;
 const float L2 = 150.0;
 
+
+int speedAccel = 7000;
+
 void moveToXY(float X, float Z) {
   const float radToDeg = 180.0 / PI;
 
@@ -37,7 +40,32 @@ void moveToXY(float X, float Z) {
   float theta1Deg = theta1 * radToDeg;
   float theta2Deg = theta2 * radToDeg;
 
-  moveXYWithAbsoluteCoordination(theta1Deg, theta2Deg, 1000, 1000);
+  moveXYWithAbsoluteCoordination(theta1Deg, theta2Deg, speedAccel, speedAccel);
+}
+
+
+void moveP1(float Y) {
+  float y = Y * 200 / 5;
+  stepper_P1.moveToPositionInSteps(y);
+}
+
+void manualP1(int delayTime) {
+  if (delayTime < 0) {
+    //Serial.println("forward");
+    digitalWrite(motorPin2_P1, LOW);
+  } else {
+    //Serial.println("reverse");
+    digitalWrite(motorPin2_P1, HIGH);
+  }
+
+  int power = map(abs(delayTime), 0, 2000, 2500, 0);
+
+  if (abs(delayTime) > 300) {
+    digitalWrite(motorPin1_P1, HIGH);
+    delayMicroseconds(power);
+    digitalWrite(motorPin1_P1, LOW);
+    delayMicroseconds(power);
+  }
 }
 
 const int joyLXpin = 12;
@@ -57,7 +85,7 @@ int buttonL = 0;
 int buttonR = 0;
 
 Servo Gripper;
-const int gripperOpenPos = 0;
+const int gripperOpenPos = 49;
 const int gripperClosedPos = 180;
 
 const int GripperPin = 5;
@@ -72,7 +100,6 @@ void GripperClose() {
 
 void setup() {
   //Serial.begin(9600);
-
   Gripper.attach(GripperPin);
 
   pinMode(buttonLpin, INPUT_PULLUP);
@@ -86,8 +113,6 @@ void setup() {
   pinMode(27, INPUT_PULLUP);
   pinMode(33, INPUT_PULLUP);
 
-  int speedAccel = 2000;
-
   stepper_RA1.setSpeedInStepsPerSecond(speedAccel);
   stepper_RA1.setAccelerationInStepsPerSecondPerSecond(speedAccel);
   stepper_RA2.setSpeedInStepsPerSecond(speedAccel);
@@ -97,11 +122,48 @@ void setup() {
   stepper_P1.setAccelerationInStepsPerSecondPerSecond(5000);
   accelP1.setMaxSpeed(3000);
 
-  const float homingSpeedInMMPerSec = 100;
+  const float homingSpeedInMMPerSec = 125;
   const float maxHomingDistanceInMM = 20000;
 
   stepper_RA1.moveToHomeInSteps(1, homingSpeedInMMPerSec, maxHomingDistanceInMM, 23);
   stepper_RA2.moveToHomeInSteps(-1, homingSpeedInMMPerSec, maxHomingDistanceInMM, 33);
+  stepper_P1.moveToHomeInSteps(1, 500, 10000, 27);
+
+  pinMode(motorPin1_P1, OUTPUT);
+  pinMode(motorPin2_P1, OUTPUT);
+  /*
+  moveP1(-350.0);
+  delay(1000);
+  moveP1(-20.0);
+
+  delay(5000);
+
+  moveP1(-100.0);
+
+  delay(10000);
+
+  moveToXY(250, 50);
+  delay(100);
+  moveToXY(105, 250);
+  delay(100);
+  moveToXY(250, 50);
+  delay(100);
+  moveToXY(105, 250);
+  delay(100);
+  moveToXY(250, 50);
+  delay(100);
+  moveToXY(105, 250);
+  delay(100);
+
+  moveP1(-20.0);
+  GripperOpen();
+  moveToXY(160, 20);
+  delay(100);
+  moveToXY(205, 20);
+  delay(100);
+  GripperClose();
+  delay(500);
+*/
 }
 
 float curX = 95.174;
@@ -119,10 +181,9 @@ void loop() {
   String output = "LX: " + String(joyLX) + ", LY: " + String(joyLY) + ", RX: " + String(joyRX) + ", RY: " + String(joyRY) + ", ButtonL: " + String(buttonL) + ", ButtonR: " + String(buttonR);
   //Serial.println(output);
 
-  // open gripper based on button presses
-  if (buttonL == 1) {
+  if (buttonL == 0) {
     GripperOpen();
-  } else if (buttonR == 1) {
+  } else if (buttonR == 0) {
     GripperClose();
   }
 
@@ -133,13 +194,16 @@ void loop() {
 
   //output = "P1 Speed: " + String(P1speed) + ", X Speed: " + String(Xspeed) + ", Yspeed: " + String(Yspeed);
   //Serial.println(output);
-
+  /*
   if (abs(P1speed) > 300) {
     accelP1.setSpeed(P1speed);
     accelP1.run();
   } else {
     accelP1.setSpeed(0);
   }
+
+  */
+  manualP1(P1speed);
 
   int moveMultiplier = 125;
 
