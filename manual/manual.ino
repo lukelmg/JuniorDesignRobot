@@ -2,6 +2,7 @@
 #include <Wire.h>
 #include "Adafruit_TCS34725.h"
 #include <AccelStepper.h>
+#include <Stepper.h>
 
 #include <SpeedyStepper.h>
 
@@ -15,6 +16,7 @@
 #define motorPin2_P1 6
 
 AccelStepper accelP1 = AccelStepper(AccelStepper::DRIVER, motorPin1_P1, motorPin2_P1);
+//Stepper stepperHP1(200, motorPin1_P1, motorPin2_P1);
 
 SpeedyStepper stepper_RA1;
 SpeedyStepper stepper_RA2;
@@ -23,10 +25,7 @@ SpeedyStepper stepper_P1;
 const float L1 = 200.0;
 const float L2 = 150.0;
 
-
-int speedAccel = 7000;
-
-void moveToXY(float X, float Z) {
+void moveToXY(float X, float Z, int myspeed) {
   const float radToDeg = 180.0 / PI;
 
   float x = static_cast<float>(X);
@@ -40,7 +39,7 @@ void moveToXY(float X, float Z) {
   float theta1Deg = theta1 * radToDeg;
   float theta2Deg = theta2 * radToDeg;
 
-  moveXYWithAbsoluteCoordination(theta1Deg, theta2Deg, speedAccel, speedAccel);
+  moveXYWithAbsoluteCoordination(theta1Deg, theta2Deg, myspeed, myspeed);
 }
 
 
@@ -50,22 +49,6 @@ void moveP1(float Y) {
 }
 
 void manualP1(int delayTime) {
-  if (delayTime < 0) {
-    //Serial.println("forward");
-    digitalWrite(motorPin2_P1, LOW);
-  } else {
-    //Serial.println("reverse");
-    digitalWrite(motorPin2_P1, HIGH);
-  }
-
-  int power = map(abs(delayTime), 0, 2000, 2500, 0);
-
-  if (abs(delayTime) > 300) {
-    digitalWrite(motorPin1_P1, HIGH);
-    delayMicroseconds(power);
-    digitalWrite(motorPin1_P1, LOW);
-    delayMicroseconds(power);
-  }
 }
 
 const int joyLXpin = 12;
@@ -89,6 +72,8 @@ const int gripperOpenPos = 49;
 const int gripperClosedPos = 180;
 
 const int GripperPin = 5;
+
+int speedAccel = 7000;
 
 void GripperOpen() {
   Gripper.write(gripperOpenPos);
@@ -120,7 +105,6 @@ void setup() {
 
   stepper_P1.setSpeedInStepsPerSecond(1000);
   stepper_P1.setAccelerationInStepsPerSecondPerSecond(5000);
-  accelP1.setMaxSpeed(3000);
 
   const float homingSpeedInMMPerSec = 125;
   const float maxHomingDistanceInMM = 20000;
@@ -131,39 +115,36 @@ void setup() {
 
   pinMode(motorPin1_P1, OUTPUT);
   pinMode(motorPin2_P1, OUTPUT);
-  /*
-  moveP1(-350.0);
-  delay(1000);
-  moveP1(-20.0);
 
-  delay(5000);
+  float blockLocations[9][2] = {
+    { 205.2, 66.2 },
+    { 205.2, 40.8 },
+    { 205.2, 15.4 },
+    { 270.6, 66.2 },
+    { 270.6, 40.8 },
+    { 270.6, 15.4 },
+    { 336, 66.2 },
+    { 336, 40.8 },
+    { 336, 15.4 }
+  };
 
-  moveP1(-100.0);
+  int goSpeed = 7000;
 
-  delay(10000);
+  for (int i = 0; i < 9; i++) {
+    if (i > 5) {
+      goSpeed = 3000;
+    }
 
-  moveToXY(250, 50);
-  delay(100);
-  moveToXY(105, 250);
-  delay(100);
-  moveToXY(250, 50);
-  delay(100);
-  moveToXY(105, 250);
-  delay(100);
-  moveToXY(250, 50);
-  delay(100);
-  moveToXY(105, 250);
-  delay(100);
-
-  moveP1(-20.0);
-  GripperOpen();
-  moveToXY(160, 20);
-  delay(100);
-  moveToXY(205, 20);
-  delay(100);
-  GripperClose();
-  delay(500);
-*/
+    moveP1(-20.0);
+    GripperOpen();
+    moveToXY(blockLocations[i][0] - 30.0, blockLocations[i][1] + 5.0, goSpeed);
+    GripperClose();
+    delay(500);
+    moveToXY(blockLocations[i][0] - 30.0, blockLocations[i][1] + 30.0, goSpeed);
+    moveToXY(100.0, 260.0, goSpeed);
+    GripperOpen();
+    delay(500);
+  }
 }
 
 float curX = 95.174;
@@ -178,14 +159,8 @@ void loop() {
   buttonL = digitalRead(buttonLpin);
   buttonR = digitalRead(buttonRpin);
 
-  String output = "LX: " + String(joyLX) + ", LY: " + String(joyLY) + ", RX: " + String(joyRX) + ", RY: " + String(joyRY) + ", ButtonL: " + String(buttonL) + ", ButtonR: " + String(buttonR);
+  //String output = "LX: " + String(joyLX) + ", LY: " + String(joyLY) + ", RX: " + String(joyRX) + ", RY: " + String(joyRY) + ", ButtonL: " + String(buttonL) + ", ButtonR: " + String(buttonR);
   //Serial.println(output);
-
-  if (buttonL == 0) {
-    GripperOpen();
-  } else if (buttonR == 0) {
-    GripperClose();
-  }
 
   // map joysticks based on anlog input
   int P1speed = map(joyRX, 0, 1023, 2000, -2000);
@@ -194,16 +169,14 @@ void loop() {
 
   //output = "P1 Speed: " + String(P1speed) + ", X Speed: " + String(Xspeed) + ", Yspeed: " + String(Yspeed);
   //Serial.println(output);
-  /*
-  if (abs(P1speed) > 300) {
-    accelP1.setSpeed(P1speed);
-    accelP1.run();
-  } else {
-    accelP1.setSpeed(0);
-  }
 
-  */
-  manualP1(P1speed);
+  /*
+
+  if (buttonL == 0) {
+    GripperOpen();
+  } else if (buttonR == 0) {
+    GripperClose();
+  }
 
   int moveMultiplier = 125;
 
@@ -219,11 +192,24 @@ void loop() {
     curZ += Zspeed / moveMultiplier;
   }
 
-  constrain(curX, 0.0, 350.0);
-  constrain(curZ, 0.0, 350.0);
+  //moveToXY(curX, curZ);
 
-  //Serial.println(curZ);
-  moveToXY(curX, curZ);
+  */
+
+  if (P1speed < 0) {
+    digitalWrite(motorPin2_P1, LOW);
+  } else {
+    digitalWrite(motorPin2_P1, HIGH);
+  }
+
+  int pulseTime = 800;
+
+  if (abs(P1speed) > 500) {
+    digitalWrite(motorPin1_P1, HIGH);
+    delayMicroseconds(pulseTime);
+    digitalWrite(motorPin1_P1, LOW);
+    delayMicroseconds(pulseTime);
+  }
 }
 
 
