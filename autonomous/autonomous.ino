@@ -30,21 +30,14 @@ char detectColor() {
 
   tcs.setInterrupt(true);  // turn off LED
 
-  Serial.print("R:\t");
-  Serial.print(int(red));
-  Serial.print("\tG:\t");
-  Serial.print(int(green));
-  Serial.print("\tB:\t");
-  Serial.print(int(blue));
-
   if (red > green && red > blue) {
-    return "R";
+    return 'R';  // Note the single quotes, which denote a char
   } else if (green > red && green > blue) {
-    return "G";
+    return 'G';  // Note the single quotes, which denote a char
   } else if (blue > red && blue > green) {
-    return "B";
+    return 'B';  // Note the single quotes, which denote a char
   } else {
-    return "U";
+    return 'U';  // Note the single quotes, which denote a char for 'Unknown'
   }
 }
 
@@ -75,17 +68,14 @@ void moveToXY(float X, float Z, int myspeed) {
   float theta1Deg = theta1 * radToDeg;
   float theta2Deg = theta2 * radToDeg;
 
+  Serial.println(theta1Deg);
+
   moveXYWithAbsoluteCoordination(theta1Deg, theta2Deg, myspeed, myspeed / 1.3);
 }
 
 void moveP1(float Y) {
-  //float y = Y * 200 / 5;
-  //stepper_P1.moveToPositionInSteps(y);
-  accelP1.moveTo(-Y * 200 / 5);
-  accelP1.runToPosition();
-}
-
-void manualP1(int delayTime) {
+  float y = Y * 200 / 5 / 3;
+  stepper_P1.moveToPositionInSteps(y);
 }
 
 const int joyLXpin = 12;
@@ -105,7 +95,7 @@ int buttonL = 0;
 int buttonR = 0;
 
 Servo Gripper;
-const int gripperOpenPos = 110;
+const int gripperOpenPos = 60;
 const int gripperClosedPos = 180;
 
 const int GripperPin = 5;
@@ -121,6 +111,7 @@ void GripperClose() {
 }
 
 void setup() {
+  Serial.begin(9600);
   if (tcs.begin()) {
     Serial.println("Found sensor");
   } else {
@@ -162,24 +153,34 @@ void setup() {
   stepper_RA2.setSpeedInStepsPerSecond(speedAccel);
   stepper_RA2.setAccelerationInStepsPerSecondPerSecond(speedAccel);
 
-  //stepper_P1.setSpeedInStepsPerSecond(750);
-  //stepper_P1.setAccelerationInStepsPerSecondPerSecond(1600);
+  stepper_P1.setSpeedInStepsPerSecond(700);
+  stepper_P1.setAccelerationInStepsPerSecondPerSecond(750);
 
   const float maxHomingDistanceInMM = 20000;
 
+  GripperOpen();
+  GripperClose();
+  GripperOpen();
+  GripperClose();
+
   stepper_RA1.moveToHomeInSteps(1, 800, maxHomingDistanceInMM, 23);
   stepper_RA2.moveToHomeInSteps(-1, 800, maxHomingDistanceInMM, 33);
+
+  moveToXY(100.0, 50.0, 1000);
+
   stepper_P1.moveToHomeInSteps(-1, 400, 10000, 27);
 
-  accelP1.setMaxSpeed(700);      //  steps/s
-  accelP1.setAcceleration(750);  // steps/s^2
-
-  moveP1(20);
+  moveP1(32.0);
 
   pinMode(motorPin1_P1, OUTPUT);
   pinMode(motorPin2_P1, OUTPUT);
 
   delay(500);
+
+  GripperOpen();
+
+  delay(10000);
+
 
   float blockLocations[9][2] = {
     { 205.2, 66.2 },
@@ -207,9 +208,18 @@ void setup() {
 
   int goSpeed = 7000;
 
+  float p1offset = 160.0;
+
+  float Xsafe = 50.0;
+
+  int gripperOpenDelay = 1000;
+
+  int globalDelay = 50;
+
   for (int i = 0; i < 9; i++) {
     GripperOpen();
-    moveToXY(blockLocations[i][0] - 30.0, blockLocations[i][1] + 7.0, goSpeed);
+    moveToXY(blockLocations[i][0] - 30.0, blockLocations[i][1], goSpeed);
+    delay(300);
     GripperClose();
     delay(150);
     moveToXY(blockLocations[i][0] - 30.0, blockLocations[i][1] + 30.0, goSpeed);
@@ -217,10 +227,45 @@ void setup() {
     // go to grid
     char currentColor = detectColor();
 
-    while (1) {};
+    Serial.println(currentColor);
 
-    GripperOpen();
-    delay(10);
+    if (currentColor == 'R') {
+      moveP1(redCoordinates[Rcount][1] + p1offset);
+      delay(globalDelay);
+      moveToXY(redCoordinates[Rcount][0] - Xsafe, redCoordinates[Rcount][2], goSpeed);
+      delay(globalDelay);
+      moveToXY(redCoordinates[Rcount][0], redCoordinates[Rcount][2], goSpeed);
+      GripperOpen();
+      delay(gripperOpenDelay);
+      moveToXY(redCoordinates[Rcount][0] - Xsafe, redCoordinates[Rcount][2], goSpeed);
+      Rcount++;
+    } else if (currentColor == 'G') {
+      moveP1(greenCoordinates[Gcount][1] + p1offset);
+      delay(globalDelay);
+      moveToXY(greenCoordinates[Gcount][0] - Xsafe, greenCoordinates[Gcount][2], goSpeed);
+      delay(globalDelay);
+      moveToXY(greenCoordinates[Gcount][0], greenCoordinates[Gcount][2], goSpeed);
+      GripperOpen();
+      delay(gripperOpenDelay);
+      moveToXY(greenCoordinates[Gcount][0] - Xsafe, greenCoordinates[Gcount][2], goSpeed);
+      Gcount++;
+    } else if (currentColor == 'B') {
+      moveP1(blueCoordinates[Bcount][1] + p1offset);
+      delay(globalDelay);
+      moveToXY(blueCoordinates[Bcount][0] - Xsafe, blueCoordinates[Bcount][2], goSpeed);
+      delay(globalDelay);
+      moveToXY(blueCoordinates[Bcount][0], blueCoordinates[Bcount][2], goSpeed);
+      GripperOpen();
+      delay(gripperOpenDelay);
+      moveToXY(blueCoordinates[Bcount][0] - Xsafe, blueCoordinates[Bcount][2], goSpeed);
+      Bcount++;
+    }
+
+    delay(globalDelay);
+
+    moveToXY(100.0, 50.0, goSpeed);
+
+    moveP1(32.0);
   }
 }
 
@@ -228,64 +273,9 @@ float curX = 95.174;
 float curZ = 271.962;
 
 void loop() {
-  joyLX = analogRead(joyLXpin);
-  joyLY = analogRead(joyLYpin);
-  joyRX = analogRead(joyRXpin);
-  joyRY = analogRead(joyRYpin);
-
-  buttonL = digitalRead(buttonLpin);
-  buttonR = digitalRead(buttonRpin);
-
-  //String output = "LX: " + String(joyLX) + ", LY: " + String(joyLY) + ", RX: " + String(joyRX) + ", RY: " + String(joyRY) + ", ButtonL: " + String(buttonL) + ", ButtonR: " + String(buttonR);
-  //Serial.println(output);
-
-  int P1speed = map(joyRX, 0, 1023, 2000, -2000);
-  float Xspeed = map(joyLY, 0, 1023, -100, 100);
-  float Zspeed = map(joyRY, 0, 1023, 100, -100);
-
-  //output = "P1 Speed: " + String(P1speed) + ", X Speed: " + String(Xspeed) + ", Yspeed: " + String(Yspeed);
-  //Serial.println(output);
-
-  /*
-
-  if (buttonL == 0) {
-    GripperOpen();
-  } else if (buttonR == 0) {
-    GripperClose();
-  }
-
-  int moveMultiplier = 125;
-
-  if (Xspeed > 30) {
-    curX += Xspeed / moveMultiplier;
-  } else if (Xspeed < -30) {
-    curX += Xspeed / moveMultiplier;
-  }
-
-  if (Zspeed > 30) {
-    curZ += Zspeed / moveMultiplier;
-  } else if (Zspeed < -30) {
-    curZ += Zspeed / moveMultiplier;
-  }
-
-  //moveToXY(curX, curZ);
-
-  */
-
-  if (P1speed < 0) {
-    digitalWrite(motorPin2_P1, LOW);
-  } else {
-    digitalWrite(motorPin2_P1, HIGH);
-  }
-
-  int pulseTime = 800;
-
-  if (abs(P1speed) > 500) {
-    digitalWrite(motorPin1_P1, HIGH);
-    delayMicroseconds(pulseTime);
-    digitalWrite(motorPin1_P1, LOW);
-    delayMicroseconds(pulseTime);
-  }
+  char currentColor = detectColor();
+  Serial.println(currentColor);
+  delay(100);
 }
 
 float currentAngle1 = 100.0;
@@ -299,8 +289,8 @@ void moveXYWithAbsoluteCoordination(float targetPosition1, float targetPosition2
   float accelerationInStepsPerSecondPerSecond_1;
   float speedInStepsPerSecond_2;
   float accelerationInStepsPerSecondPerSecond_2;
-  float moveAngle1 = 0;
-  float moveAngle2 = 0;
+  float moveAngle1 = 0.0;
+  float moveAngle2 = 0.0;
   int absSteps1;
   int absSteps2;
   float ra1Offset;
@@ -315,6 +305,8 @@ void moveXYWithAbsoluteCoordination(float targetPosition1, float targetPosition2
   moveAngle2 = targetPosition2 - currentAngle2;
 
   float realMoveAngle2 = moveAngle2 - moveAngle1;
+
+  Serial.println(moveAngle1);
 
   int moveSteps1 = static_cast<int>(round((moveAngle1 * stepsPerRevolution / 360.0)));
   int moveSteps2 = static_cast<int>(round((realMoveAngle2 * stepsPerRevolution / 360.0)));
@@ -340,6 +332,8 @@ void moveXYWithAbsoluteCoordination(float targetPosition1, float targetPosition2
     speedInStepsPerSecond_1 = speedInStepsPerSecond_1 * scaler;
     accelerationInStepsPerSecondPerSecond_1 = accelerationInStepsPerSecondPerSecond_1 * scaler;
   }
+
+  Serial.println(moveSteps1);
 
   stepper_RA1.setSpeedInStepsPerSecond(speedInStepsPerSecond_1);
   stepper_RA1.setAccelerationInStepsPerSecondPerSecond(accelerationInStepsPerSecondPerSecond_1);
