@@ -105,7 +105,7 @@ int buttonL = 0;
 int buttonR = 0;
 
 Servo Gripper;
-const int gripperOpenPos = 110;
+const int gripperOpenPos = 60;
 const int gripperClosedPos = 180;
 
 const int GripperPin = 5;
@@ -121,29 +121,6 @@ void GripperClose() {
 }
 
 void setup() {
-  if (tcs.begin()) {
-    Serial.println("Found sensor");
-  } else {
-    Serial.println("No TCS34725 found ... check your connections");
-    while (1)
-      ;
-  }
-
-  for (int i = 0; i < 256; i++) {
-    float x = i;
-    x /= 255;
-    x = pow(x, 2.5);
-    x *= 255;
-
-    if (commonAnode) {
-      gammatable[i] = 255 - x;
-    } else {
-      gammatable[i] = x;
-    }
-  }
-
-  delay(3000);
-
   Gripper.attach(GripperPin);
 
   pinMode(buttonLpin, INPUT_PULLUP);
@@ -162,9 +139,6 @@ void setup() {
   stepper_RA2.setSpeedInStepsPerSecond(speedAccel);
   stepper_RA2.setAccelerationInStepsPerSecondPerSecond(speedAccel);
 
-  //stepper_P1.setSpeedInStepsPerSecond(750);
-  //stepper_P1.setAccelerationInStepsPerSecondPerSecond(1600);
-
   const float maxHomingDistanceInMM = 20000;
 
   stepper_RA1.moveToHomeInSteps(1, 800, maxHomingDistanceInMM, 23);
@@ -180,52 +154,10 @@ void setup() {
   pinMode(motorPin2_P1, OUTPUT);
 
   delay(500);
-
-  float blockLocations[9][2] = {
-    { 205.2, 66.2 },
-    { 205.2, 40.8 },
-    { 205.2, 15.4 },
-    { 270.6, 66.2 },
-    { 270.6, 40.8 },
-    { 270.6, 15.4 },
-    { 336, 66.2 },
-    { 336, 40.8 },
-    { 336, 15.4 }
-  };
-
-  const float redCoordinates[3][3] = {
-    { 212.0, 262.3, 200.0 }, { 212.0, 262.3, 110.0 }, { 212.0, 262.3, 20.0 }
-  };
-
-  const float greenCoordinates[3][3] = {
-    { 212.0, 133.52, 200.0 }, { 212.0, 133.52, 110.0 }, { 212.0, 133.52, 110.0 }
-  };
-
-  const float blueCoordinates[3][3] = {
-    { 212.0, 390.78, 200.0 }, { 212.0, 390.78, 110.0 }, { 212.0, 390.78, 20.0 }
-  };
-
-  int goSpeed = 7000;
-
-  for (int i = 0; i < 9; i++) {
-    GripperOpen();
-    moveToXY(blockLocations[i][0] - 30.0, blockLocations[i][1] + 7.0, goSpeed);
-    GripperClose();
-    delay(150);
-    moveToXY(blockLocations[i][0] - 30.0, blockLocations[i][1] + 30.0, goSpeed);
-    moveToXY(100.0, 50.0, goSpeed);
-    // go to grid
-    char currentColor = detectColor();
-
-    while (1) {};
-
-    GripperOpen();
-    delay(10);
-  }
 }
 
-float curX = 95.174;
-float curZ = 271.962;
+float curX = 100.0;
+float curZ = 100.0;
 
 void loop() {
   joyLX = analogRead(joyLXpin);
@@ -246,7 +178,6 @@ void loop() {
   //output = "P1 Speed: " + String(P1speed) + ", X Speed: " + String(Xspeed) + ", Yspeed: " + String(Yspeed);
   //Serial.println(output);
 
-  /*
 
   if (buttonL == 0) {
     GripperOpen();
@@ -268,19 +199,17 @@ void loop() {
     curZ += Zspeed / moveMultiplier;
   }
 
-  //moveToXY(curX, curZ);
-
-  */
+  moveToXY(curX, curZ, 7000);
 
   if (P1speed < 0) {
-    digitalWrite(motorPin2_P1, LOW);
-  } else {
     digitalWrite(motorPin2_P1, HIGH);
+  } else {
+    digitalWrite(motorPin2_P1, LOW);
   }
 
-  int pulseTime = 800;
+  int pulseTime = 900;
 
-  if (abs(P1speed) > 500) {
+  if (abs(P1speed) > 800) {
     digitalWrite(motorPin1_P1, HIGH);
     delayMicroseconds(pulseTime);
     digitalWrite(motorPin1_P1, LOW);

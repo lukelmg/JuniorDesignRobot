@@ -45,7 +45,7 @@ int Rcount = 0;
 int Gcount = 0;
 int Bcount = 0;
 
-AccelStepper accelP1 = AccelStepper(AccelStepper::DRIVER, motorPin1_P1, motorPin2_P1);
+//AccelStepper accelP1 = AccelStepper(AccelStepper::DRIVER, motorPin1_P1, motorPin2_P1);
 
 SpeedyStepper stepper_RA1;
 SpeedyStepper stepper_RA2;
@@ -77,22 +77,6 @@ void moveP1(float Y) {
   float y = Y * 200 / 5 / 3;
   stepper_P1.moveToPositionInSteps(y);
 }
-
-const int joyLXpin = 12;
-const int joyLYpin = 13;
-const int joyRXpin = 14;
-const int joyRYpin = 15;
-
-int joyLX = 0;
-int joyLY = 0;
-int joyRX = 0;
-int joyRY = 0;
-
-const int buttonLpin = 41;
-const int buttonRpin = 43;
-
-int buttonL = 0;
-int buttonR = 0;
 
 Servo Gripper;
 const int gripperOpenPos = 60;
@@ -137,9 +121,6 @@ void setup() {
 
   Gripper.attach(GripperPin);
 
-  pinMode(buttonLpin, INPUT_PULLUP);
-  pinMode(buttonRpin, INPUT_PULLUP);
-
   stepper_RA1.connectToPins(motorPin1_RA1, motorPin2_RA1);
   stepper_RA2.connectToPins(motorPin1_RA2, motorPin2_RA2);
   stepper_P1.connectToPins(motorPin1_P1, motorPin2_P1);
@@ -153,20 +134,15 @@ void setup() {
   stepper_RA2.setSpeedInStepsPerSecond(speedAccel);
   stepper_RA2.setAccelerationInStepsPerSecondPerSecond(speedAccel);
 
-  stepper_P1.setSpeedInStepsPerSecond(700);
-  stepper_P1.setAccelerationInStepsPerSecondPerSecond(750);
+  stepper_P1.setSpeedInStepsPerSecond(950);
+  stepper_P1.setAccelerationInStepsPerSecondPerSecond(300);
 
   const float maxHomingDistanceInMM = 20000;
-
-  GripperOpen();
-  GripperClose();
-  GripperOpen();
-  GripperClose();
 
   stepper_RA1.moveToHomeInSteps(1, 800, maxHomingDistanceInMM, 23);
   stepper_RA2.moveToHomeInSteps(-1, 800, maxHomingDistanceInMM, 33);
 
-  moveToXY(100.0, 50.0, 1000);
+  moveToXY(80.0, 50.0, 1000);
 
   stepper_P1.moveToHomeInSteps(-1, 400, 10000, 27);
 
@@ -179,49 +155,59 @@ void setup() {
 
   GripperOpen();
 
-  delay(10000);
+  delay(6000);
 
 
   float blockLocations[9][2] = {
     { 205.2, 66.2 },
     { 205.2, 40.8 },
-    { 205.2, 15.4 },
+    { 205.2, 15.4+3.0 },
     { 270.6, 66.2 },
     { 270.6, 40.8 },
-    { 270.6, 15.4 },
+    { 270.6, 15.4+3.0 },
     { 336, 66.2 },
     { 336, 40.8 },
-    { 336, 15.4 }
+    { 336, 15.4+3.0 }
   };
 
   const float redCoordinates[3][3] = {
-    { 212.0, 262.3, 200.0 }, { 212.0, 262.3, 110.0 }, { 212.0, 262.3, 20.0 }
+    { 212.0, 262.3, 200.0 }, 
+    { 212.0, 262.3, 110.0 }, 
+    { 212.0, 262.3, 20.0 }
   };
 
   const float greenCoordinates[3][3] = {
-    { 212.0, 133.52, 200.0 }, { 212.0, 133.52, 110.0 }, { 212.0, 133.52, 110.0 }
+    { 212.0, 133.52, 200.0 }, 
+    { 212.0, 133.52, 110.0 }, 
+    { 212.0, 133.52, 20.0 }
   };
 
   const float blueCoordinates[3][3] = {
-    { 212.0, 390.78, 200.0 }, { 212.0, 390.78, 110.0 }, { 212.0, 390.78, 20.0 }
+    { 212.0, 390.78, 200.0 }, 
+    { 212.0, 390.78, 110.0 }, 
+    { 212.0, 390.78, 20.0 }
   };
 
   int goSpeed = 7000;
 
-  float p1offset = 160.0;
+  float p1offset = 145.0;
 
-  float Xsafe = 50.0;
+  float greenoffset = 125.0;
+  float redoffset = 175.0;
+  float blueoffset = 235.0;
 
-  int gripperOpenDelay = 1000;
+  float Xsafe = 80.0;
+
+  int gripperOpenDelay = 250;
 
   int globalDelay = 50;
 
   for (int i = 0; i < 9; i++) {
     GripperOpen();
     moveToXY(blockLocations[i][0] - 30.0, blockLocations[i][1], goSpeed);
-    delay(300);
+    delay(globalDelay);
     GripperClose();
-    delay(150);
+    delay(gripperOpenDelay);
     moveToXY(blockLocations[i][0] - 30.0, blockLocations[i][1] + 30.0, goSpeed);
     moveToXY(100.0, 50.0, goSpeed);
     // go to grid
@@ -230,7 +216,7 @@ void setup() {
     Serial.println(currentColor);
 
     if (currentColor == 'R') {
-      moveP1(redCoordinates[Rcount][1] + p1offset);
+      moveP1(redCoordinates[Rcount][1] + redoffset);
       delay(globalDelay);
       moveToXY(redCoordinates[Rcount][0] - Xsafe, redCoordinates[Rcount][2], goSpeed);
       delay(globalDelay);
@@ -240,7 +226,7 @@ void setup() {
       moveToXY(redCoordinates[Rcount][0] - Xsafe, redCoordinates[Rcount][2], goSpeed);
       Rcount++;
     } else if (currentColor == 'G') {
-      moveP1(greenCoordinates[Gcount][1] + p1offset);
+      moveP1(greenCoordinates[Gcount][1] + greenoffset);
       delay(globalDelay);
       moveToXY(greenCoordinates[Gcount][0] - Xsafe, greenCoordinates[Gcount][2], goSpeed);
       delay(globalDelay);
@@ -250,7 +236,7 @@ void setup() {
       moveToXY(greenCoordinates[Gcount][0] - Xsafe, greenCoordinates[Gcount][2], goSpeed);
       Gcount++;
     } else if (currentColor == 'B') {
-      moveP1(blueCoordinates[Bcount][1] + p1offset);
+      moveP1(blueCoordinates[Bcount][1] + blueoffset);
       delay(globalDelay);
       moveToXY(blueCoordinates[Bcount][0] - Xsafe, blueCoordinates[Bcount][2], goSpeed);
       delay(globalDelay);
@@ -280,8 +266,6 @@ void loop() {
 
 float currentAngle1 = 100.0;
 float currentAngle2 = 70.0;
-
-int count = 0;
 
 void moveXYWithAbsoluteCoordination(float targetPosition1, float targetPosition2, float speedInStepsPerSecond, float accelerationInStepsPerSecondPerSecond) {
   const float stepsPerRevolution = 200.0 * 4.0 * 4.0;  // 200 steps per rev, 4x gear ratio, 4x microstepping
@@ -350,5 +334,4 @@ void moveXYWithAbsoluteCoordination(float targetPosition1, float targetPosition2
 
   currentAngle1 += moveAngle1;
   currentAngle2 += moveAngle2;
-  count++;
 }
