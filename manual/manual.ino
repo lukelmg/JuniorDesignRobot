@@ -6,14 +6,15 @@
 #include "Adafruit_TCS34725.h"
 #include <SpeedyStepper.h>
 
-#define motorPin1_RA1 12
-#define motorPin2_RA1 11
+#define motorPin1_RA1 11
+#define motorPin2_RA1 12
 
-#define motorPin1_RA2 10
+#define motorPin1_RA2 8
 #define motorPin2_RA2 9
 
-#define motorPin1_P1 7
-#define motorPin2_P1 6
+#define motorPin1_P1 6
+#define motorPin2_P1 7
+
 
 Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
 byte gammatable[256];
@@ -85,12 +86,9 @@ void moveP1(float Y) {
   accelP1.runToPosition();
 }
 
-void manualP1(int delayTime) {
-}
-
-const int joyLXpin = 12;
-const int joyLYpin = 13;
-const int joyRXpin = 14;
+const int joyLXpin = 13;
+const int joyLYpin = 10;
+const int joyRXpin = 8;
 const int joyRYpin = 15;
 
 int joyLX = 0;
@@ -120,6 +118,8 @@ void GripperClose() {
   Gripper.write(gripperClosedPos);
 }
 
+  int P1max = 1500;
+
 void setup() {
   Gripper.attach(GripperPin);
 
@@ -143,9 +143,10 @@ void setup() {
 
   stepper_RA1.moveToHomeInSteps(1, 800, maxHomingDistanceInMM, 23);
   stepper_RA2.moveToHomeInSteps(-1, 800, maxHomingDistanceInMM, 33);
-  stepper_P1.moveToHomeInSteps(-1, 400, 10000, 27);
+  stepper_P1.moveToHomeInSteps(-1, 600, 10000, 27);
 
-  accelP1.setMaxSpeed(700);      //  steps/s
+
+  accelP1.setMaxSpeed(P1max);      //  steps/s
   accelP1.setAcceleration(750);  // steps/s^2
 
   moveP1(20);
@@ -154,6 +155,8 @@ void setup() {
   pinMode(motorPin2_P1, OUTPUT);
 
   delay(500);
+
+  //Serial.begin(9600);
 }
 
 float curX = 100.0;
@@ -171,9 +174,22 @@ void loop() {
   //String output = "LX: " + String(joyLX) + ", LY: " + String(joyLY) + ", RX: " + String(joyRX) + ", RY: " + String(joyRY) + ", ButtonL: " + String(buttonL) + ", ButtonR: " + String(buttonR);
   //Serial.println(output);
 
-  int P1speed = map(joyRX, 0, 1023, 2000, -2000);
+  int P1speed = map(joyRX, 0, 1023, -P1max, P1max);
   float Xspeed = map(joyLY, 0, 1023, -100, 100);
-  float Zspeed = map(joyRY, 0, 1023, 100, -100);
+  float Zspeed = map(joyLX, 0, 1023, 100, -100);
+
+  if (abs(P1speed) < 500) {
+    P1speed = 0;
+  }
+
+  float eqSpeed = pow((abs(P1speed) / 50),2.15);
+
+  if (P1speed < 0) {
+    eqSpeed *= -1;
+  }
+
+  accelP1.setSpeed(eqSpeed);
+  accelP1.runSpeed();
 
   //output = "P1 Speed: " + String(P1speed) + ", X Speed: " + String(Xspeed) + ", Yspeed: " + String(Yspeed);
   //Serial.println(output);
@@ -200,21 +216,6 @@ void loop() {
   }
 
   moveToXY(curX, curZ, 7000);
-
-  if (P1speed < 0) {
-    digitalWrite(motorPin2_P1, HIGH);
-  } else {
-    digitalWrite(motorPin2_P1, LOW);
-  }
-
-  int pulseTime = 900;
-
-  if (abs(P1speed) > 800) {
-    digitalWrite(motorPin1_P1, HIGH);
-    delayMicroseconds(pulseTime);
-    digitalWrite(motorPin1_P1, LOW);
-    delayMicroseconds(pulseTime);
-  }
 }
 
 float currentAngle1 = 100.0;
