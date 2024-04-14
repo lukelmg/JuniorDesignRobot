@@ -3,7 +3,6 @@
 #include "Adafruit_TCS34725.h"
 #include <AccelStepper.h>
 #include <Stepper.h>
-#include "Adafruit_TCS34725.h"
 #include <SpeedyStepper.h>
 
 #define motorPin1_RA1 11
@@ -203,7 +202,7 @@ void setup() {
 
   int gripperOpenDelay = 250;
 
-  int globalDelay = 50;
+  int globalDelay = 10;
 
   for (int i = 0; i < 9; i++) {
     GripperOpen();
@@ -211,19 +210,15 @@ void setup() {
     delay(globalDelay);
     GripperClose();
     delay(gripperOpenDelay);
-    char currentColor = detectColor();
     moveToXY(blockLocations[i][0] - 30.0, blockLocations[i][1] + 30.0, goSpeed);
-    //moveToXY(100.0, 50.0, goSpeed);
+    moveToXY(100.0, 50.0, goSpeed);
+    char currentColor = detectColor();
     // go to grid
 
     Serial.println(currentColor);
 
     if (currentColor == 'R') {
-      if (Rcount == 2) {
-        moveToXY(redCoordinates[Rcount][0] - Xsafe, redCoordinates[Rcount][2] + 10.0, goSpeed);
-      } else {
-        moveToXY(redCoordinates[Rcount][0] - Xsafe, redCoordinates[Rcount][2], goSpeed);
-      }
+      moveToXY(redCoordinates[Rcount][0] - Xsafe, redCoordinates[Rcount][2], goSpeed);
       moveP1(redCoordinates[Rcount][1] + redoffset);
       delay(globalDelay);
       //moveToXY(redCoordinates[Rcount][0] - Xsafe, redCoordinates[Rcount][2], goSpeed);
@@ -234,11 +229,7 @@ void setup() {
       moveToXY(redCoordinates[Rcount][0] - Xsafe, redCoordinates[Rcount][2], goSpeed);
       Rcount++;
     } else if (currentColor == 'G') {
-      if (Gcount == 2) {
-        moveToXY(greenCoordinates[Gcount][0] - Xsafe, greenCoordinates[Gcount][2] + 10.0, goSpeed);
-      } else {
-        moveToXY(greenCoordinates[Gcount][0] - Xsafe, greenCoordinates[Gcount][2], goSpeed);
-      }
+      moveToXY(greenCoordinates[Gcount][0] - Xsafe, greenCoordinates[Gcount][2], goSpeed);
       moveP1(greenCoordinates[Gcount][1] + greenoffset);
       delay(globalDelay);
       //moveToXY(greenCoordinates[Gcount][0] - Xsafe, greenCoordinates[Gcount][2], goSpeed);
@@ -249,11 +240,8 @@ void setup() {
       moveToXY(greenCoordinates[Gcount][0] - Xsafe, greenCoordinates[Gcount][2], goSpeed);
       Gcount++;
     } else if (currentColor == 'B') {
-      if (Bcount == 2) {
-        moveToXY(blueCoordinates[Bcount][0] - Xsafe, blueCoordinates[Bcount][2] + 10.0, goSpeed);
-      } else {
-        moveToXY(blueCoordinates[Bcount][0] - Xsafe, blueCoordinates[Bcount][2], goSpeed);
-      }
+      moveToXY(blueCoordinates[Bcount][0] - Xsafe, blueCoordinates[Bcount][2], goSpeed);
+
       moveP1(blueCoordinates[Bcount][1] + blueoffset);
       delay(globalDelay);
       //moveToXY(blueCoordinates[Bcount][0] - Xsafe, blueCoordinates[Bcount][2], goSpeed);
