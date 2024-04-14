@@ -6,14 +6,16 @@
 #include "Adafruit_TCS34725.h"
 #include <SpeedyStepper.h>
 
-#define motorPin1_RA1 12
-#define motorPin2_RA1 11
+#define motorPin1_RA1 11
+#define motorPin2_RA1 12
 
-#define motorPin1_RA2 10
+#define motorPin1_RA2 8
 #define motorPin2_RA2 9
 
-#define motorPin1_P1 7
-#define motorPin2_P1 6
+#define motorPin1_P1 6
+#define motorPin2_P1 7
+
+#define buttonRpin 43
 
 Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
 byte gammatable[256];
@@ -84,7 +86,7 @@ const int gripperClosedPos = 180;
 
 const int GripperPin = 5;
 
-int speedAccel = 7000;
+int speedAccel = 6000;
 
 void GripperOpen() {
   Gripper.write(gripperOpenPos);
@@ -96,6 +98,7 @@ void GripperClose() {
 
 void setup() {
   Serial.begin(9600);
+  pinMode(buttonRpin, INPUT_PULLUP);
   if (tcs.begin()) {
     Serial.println("Found sensor");
   } else {
@@ -117,7 +120,7 @@ void setup() {
     }
   }
 
-  delay(3000);
+  delay(1000);
 
   Gripper.attach(GripperPin);
 
@@ -134,8 +137,8 @@ void setup() {
   stepper_RA2.setSpeedInStepsPerSecond(speedAccel);
   stepper_RA2.setAccelerationInStepsPerSecondPerSecond(speedAccel);
 
-  stepper_P1.setSpeedInStepsPerSecond(950);
-  stepper_P1.setAccelerationInStepsPerSecondPerSecond(300);
+  stepper_P1.setSpeedInStepsPerSecond(1300);
+  stepper_P1.setAccelerationInStepsPerSecondPerSecond(1400);
 
   const float maxHomingDistanceInMM = 20000;
 
@@ -144,7 +147,7 @@ void setup() {
 
   moveToXY(80.0, 50.0, 1000);
 
-  stepper_P1.moveToHomeInSteps(-1, 400, 10000, 27);
+  stepper_P1.moveToHomeInSteps(-1, 600, 10000, 27);
 
   moveP1(32.0);
 
@@ -155,36 +158,36 @@ void setup() {
 
   GripperOpen();
 
-  delay(6000);
+  while (digitalRead(buttonRpin) == 1) {}
 
 
   float blockLocations[9][2] = {
     { 205.2, 66.2 },
     { 205.2, 40.8 },
-    { 205.2, 15.4+3.0 },
+    { 205.2, 15.4 + 6.0 },
     { 270.6, 66.2 },
     { 270.6, 40.8 },
-    { 270.6, 15.4+3.0 },
+    { 270.6, 15.4 + 6.0 },
     { 336, 66.2 },
     { 336, 40.8 },
-    { 336, 15.4+3.0 }
+    { 336, 15.4 + 6.0 }
   };
 
   const float redCoordinates[3][3] = {
-    { 212.0, 262.3, 200.0 }, 
-    { 212.0, 262.3, 110.0 }, 
+    { 212.0, 262.3, 200.0 },
+    { 212.0, 262.3, 110.0 },
     { 212.0, 262.3, 20.0 }
   };
 
   const float greenCoordinates[3][3] = {
-    { 212.0, 133.52, 200.0 }, 
-    { 212.0, 133.52, 110.0 }, 
+    { 212.0, 133.52, 200.0 },
+    { 212.0, 133.52, 110.0 },
     { 212.0, 133.52, 20.0 }
   };
 
   const float blueCoordinates[3][3] = {
-    { 212.0, 390.78, 200.0 }, 
-    { 212.0, 390.78, 110.0 }, 
+    { 212.0, 390.78, 200.0 },
+    { 212.0, 390.78, 110.0 },
     { 212.0, 390.78, 20.0 }
   };
 
@@ -208,17 +211,22 @@ void setup() {
     delay(globalDelay);
     GripperClose();
     delay(gripperOpenDelay);
-    moveToXY(blockLocations[i][0] - 30.0, blockLocations[i][1] + 30.0, goSpeed);
-    moveToXY(100.0, 50.0, goSpeed);
-    // go to grid
     char currentColor = detectColor();
+    moveToXY(blockLocations[i][0] - 30.0, blockLocations[i][1] + 30.0, goSpeed);
+    //moveToXY(100.0, 50.0, goSpeed);
+    // go to grid
 
     Serial.println(currentColor);
 
     if (currentColor == 'R') {
+      if (Rcount == 2) {
+        moveToXY(redCoordinates[Rcount][0] - Xsafe, redCoordinates[Rcount][2] + 10.0, goSpeed);
+      } else {
+        moveToXY(redCoordinates[Rcount][0] - Xsafe, redCoordinates[Rcount][2], goSpeed);
+      }
       moveP1(redCoordinates[Rcount][1] + redoffset);
       delay(globalDelay);
-      moveToXY(redCoordinates[Rcount][0] - Xsafe, redCoordinates[Rcount][2], goSpeed);
+      //moveToXY(redCoordinates[Rcount][0] - Xsafe, redCoordinates[Rcount][2], goSpeed);
       delay(globalDelay);
       moveToXY(redCoordinates[Rcount][0], redCoordinates[Rcount][2], goSpeed);
       GripperOpen();
@@ -226,9 +234,14 @@ void setup() {
       moveToXY(redCoordinates[Rcount][0] - Xsafe, redCoordinates[Rcount][2], goSpeed);
       Rcount++;
     } else if (currentColor == 'G') {
+      if (Gcount == 2) {
+        moveToXY(greenCoordinates[Gcount][0] - Xsafe, greenCoordinates[Gcount][2] + 10.0, goSpeed);
+      } else {
+        moveToXY(greenCoordinates[Gcount][0] - Xsafe, greenCoordinates[Gcount][2], goSpeed);
+      }
       moveP1(greenCoordinates[Gcount][1] + greenoffset);
       delay(globalDelay);
-      moveToXY(greenCoordinates[Gcount][0] - Xsafe, greenCoordinates[Gcount][2], goSpeed);
+      //moveToXY(greenCoordinates[Gcount][0] - Xsafe, greenCoordinates[Gcount][2], goSpeed);
       delay(globalDelay);
       moveToXY(greenCoordinates[Gcount][0], greenCoordinates[Gcount][2], goSpeed);
       GripperOpen();
@@ -236,9 +249,14 @@ void setup() {
       moveToXY(greenCoordinates[Gcount][0] - Xsafe, greenCoordinates[Gcount][2], goSpeed);
       Gcount++;
     } else if (currentColor == 'B') {
+      if (Bcount == 2) {
+        moveToXY(blueCoordinates[Bcount][0] - Xsafe, blueCoordinates[Bcount][2] + 10.0, goSpeed);
+      } else {
+        moveToXY(blueCoordinates[Bcount][0] - Xsafe, blueCoordinates[Bcount][2], goSpeed);
+      }
       moveP1(blueCoordinates[Bcount][1] + blueoffset);
       delay(globalDelay);
-      moveToXY(blueCoordinates[Bcount][0] - Xsafe, blueCoordinates[Bcount][2], goSpeed);
+      //moveToXY(blueCoordinates[Bcount][0] - Xsafe, blueCoordinates[Bcount][2], goSpeed);
       delay(globalDelay);
       moveToXY(blueCoordinates[Bcount][0], blueCoordinates[Bcount][2], goSpeed);
       GripperOpen();
@@ -249,7 +267,7 @@ void setup() {
 
     delay(globalDelay);
 
-    moveToXY(100.0, 50.0, goSpeed);
+    moveToXY(125.0, 50, goSpeed);
 
     moveP1(32.0);
   }
