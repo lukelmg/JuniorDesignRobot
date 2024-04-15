@@ -136,8 +136,8 @@ void setup() {
   stepper_RA2.setSpeedInStepsPerSecond(speedAccel);
   stepper_RA2.setAccelerationInStepsPerSecondPerSecond(speedAccel);
 
-  stepper_P1.setSpeedInStepsPerSecond(1200);
-  stepper_P1.setAccelerationInStepsPerSecondPerSecond(1000);
+  stepper_P1.setSpeedInStepsPerSecond(2500);
+  stepper_P1.setAccelerationInStepsPerSecondPerSecond(4000);
 
   const float maxHomingDistanceInMM = 20000;
 
@@ -146,7 +146,7 @@ void setup() {
 
   moveToXY(80.0, 50.0, 1000);
 
-  stepper_P1.moveToHomeInSteps(-1, 600, 10000, 27);
+  stepper_P1.moveToHomeInSteps(-1, 1000, 10000, 27);
 
   moveP1(32.0);
 
