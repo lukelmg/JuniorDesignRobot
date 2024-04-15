@@ -136,8 +136,8 @@ void setup() {
   stepper_RA2.setSpeedInStepsPerSecond(speedAccel);
   stepper_RA2.setAccelerationInStepsPerSecondPerSecond(speedAccel);
 
-  stepper_P1.setSpeedInStepsPerSecond(1300);
-  stepper_P1.setAccelerationInStepsPerSecondPerSecond(1400);
+  stepper_P1.setSpeedInStepsPerSecond(1200);
+  stepper_P1.setAccelerationInStepsPerSecondPerSecond(1000);
 
   const float maxHomingDistanceInMM = 20000;
 
@@ -173,21 +173,21 @@ void setup() {
   };
 
   const float redCoordinates[3][3] = {
-    { 212.0, 262.3, 200.0 },
-    { 212.0, 262.3, 110.0 },
-    { 212.0, 262.3, 20.0 }
+    { 212.0, 262.3, 200.0  - 5.0},
+    { 212.0, 262.3, 110.0 - 5.0},
+    { 212.0, 262.3, 20.0  - 5.0}
   };
 
   const float greenCoordinates[3][3] = {
-    { 212.0, 133.52, 200.0 },
-    { 212.0, 133.52, 110.0 },
-    { 212.0, 133.52, 20.0 }
+    { 212.0, 133.52, 200.0 - 5.0 },
+    { 212.0, 133.52, 110.0 - 5.0},
+    { 212.0, 133.52, 20.0 - 5.0}
   };
 
   const float blueCoordinates[3][3] = {
-    { 212.0, 390.78, 200.0 },
-    { 212.0, 390.78, 110.0 },
-    { 212.0, 390.78, 20.0 }
+    { 212.0, 390.78, 200.0 - 5.0},
+    { 212.0, 390.78, 110.0 - 5.0},
+    { 212.0, 390.78, 20.0 - 5.0}
   };
 
   int goSpeed = 7000;
@@ -241,7 +241,6 @@ void setup() {
       Gcount++;
     } else if (currentColor == 'B') {
       moveToXY(blueCoordinates[Bcount][0] - Xsafe, blueCoordinates[Bcount][2], goSpeed);
-
       moveP1(blueCoordinates[Bcount][1] + blueoffset);
       delay(globalDelay);
       //moveToXY(blueCoordinates[Bcount][0] - Xsafe, blueCoordinates[Bcount][2], goSpeed);
