@@ -118,7 +118,7 @@ void GripperClose() {
   Gripper.write(gripperClosedPos);
 }
 
-  int P1max = 1500;
+int P1max = 3000;
 
 void setup() {
   Gripper.attach(GripperPin);
@@ -141,13 +141,15 @@ void setup() {
 
   const float maxHomingDistanceInMM = 20000;
 
+  accelP1.setMaxSpeed(P1max);     //  steps/s
+  accelP1.setAcceleration(4000);  // steps/s^2
+
+  stepper_P1.setSpeedInStepsPerSecond(2500);
+  stepper_P1.setAccelerationInStepsPerSecondPerSecond(4000);
+
   stepper_RA1.moveToHomeInSteps(1, 800, maxHomingDistanceInMM, 23);
   stepper_RA2.moveToHomeInSteps(-1, 800, maxHomingDistanceInMM, 33);
-  stepper_P1.moveToHomeInSteps(-1, 600, 10000, 27);
-
-
-  accelP1.setMaxSpeed(P1max);      //  steps/s
-  accelP1.setAcceleration(750);  // steps/s^2
+  stepper_P1.moveToHomeInSteps(-1, 1000, 10000, 27);
 
   moveP1(20);
 
@@ -162,9 +164,15 @@ void setup() {
 float curX = 100.0;
 float curZ = 100.0;
 
+int P1maxSpeed = 60000;
+
+int state = 1;
+int prevstate = state;
+int P1determinedSpeed = 300;
+
 void loop() {
-  joyLX = analogRead(joyLXpin);
-  joyLY = analogRead(joyLYpin);
+  joyLY = analogRead(joyLXpin);
+  joyLX = analogRead(joyLYpin);
   joyRX = analogRead(joyRXpin);
   joyRY = analogRead(joyRYpin);
 
@@ -174,22 +182,47 @@ void loop() {
   //String output = "LX: " + String(joyLX) + ", LY: " + String(joyLY) + ", RX: " + String(joyRX) + ", RY: " + String(joyRY) + ", ButtonL: " + String(buttonL) + ", ButtonR: " + String(buttonR);
   //Serial.println(output);
 
-  int P1speed = map(joyRX, 0, 1023, -P1max, P1max);
+  int P1speed = map(joyRX, 0, 1023, -P1maxSpeed, P1maxSpeed);
   float Xspeed = map(joyLY, 0, 1023, -100, 100);
   float Zspeed = map(joyLX, 0, 1023, 100, -100);
 
-  if (abs(P1speed) < 500) {
-    P1speed = 0;
+  //Serial.println(P1speed);
+
+
+  if (abs(P1speed) > 600) {
+    if (P1speed < 0) {
+      digitalWrite(motorPin2_P1, HIGH);
+      state = -1;
+      if (prevstate != state) {
+        for (int i = 5000; i > P1determinedSpeed; i -= 5) {
+          digitalWrite(motorPin1_P1, HIGH);
+          digitalWrite(motorPin1_P1, LOW);
+          delayMicroseconds(i);
+        }
+      } else {
+        digitalWrite(motorPin1_P1, HIGH);
+        digitalWrite(motorPin1_P1, LOW);
+        delayMicroseconds(P1determinedSpeed);
+      }
+    } else {
+      digitalWrite(motorPin2_P1, LOW);
+      state = 1;
+      if (prevstate != state) {
+        for (int i = 5000; i > P1determinedSpeed; i -= 5) {
+          digitalWrite(motorPin1_P1, HIGH);
+          digitalWrite(motorPin1_P1, LOW);
+          delayMicroseconds(i);
+        }
+      } else {
+        digitalWrite(motorPin1_P1, HIGH);
+        digitalWrite(motorPin1_P1, LOW);
+        delayMicroseconds(P1determinedSpeed);
+      }
+    }
   }
 
-  float eqSpeed = pow((abs(P1speed) / 50),2.15);
+  prevstate = state;
 
-  if (P1speed < 0) {
-    eqSpeed *= -1;
-  }
-
-  accelP1.setSpeed(eqSpeed);
-  accelP1.runSpeed();
 
   //output = "P1 Speed: " + String(P1speed) + ", X Speed: " + String(Xspeed) + ", Yspeed: " + String(Yspeed);
   //Serial.println(output);
