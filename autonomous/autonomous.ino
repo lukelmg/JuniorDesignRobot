@@ -16,8 +16,37 @@
 
 #define buttonRpin 43
 
-const int realP1Speed = 2300;
-const int realP1Accel = 3200;
+const int realP1Speed = 2000;
+const int realP1Accel = 3000;
+
+float fract(float x) {
+  return x - int(x);
+}
+
+float mix(float a, float b, float t) {
+  return a + (b - a) * t;
+}
+
+float step(float e, float x) {
+  return x < e ? 0.0 : 1.0;
+}
+
+float rgb2hsv(float r, float g, float b) {
+  float s = step(b, g);
+  float px = mix(b, g, s);
+  float py = mix(g, b, s);
+  float pz = mix(-1.0, 0.0, s);
+  float pw = mix(0.6666666, -0.3333333, s);
+  s = step(px, r);
+  float qx = mix(px, r, s);
+  float qz = mix(pw, pz, s);
+  float qw = mix(r, px, s);
+  float d = qx - min(qw, py);
+  float hsv = abs(qz + (qw - py) / (6.0 * d + 1e-10));
+  //hsv[1] = d / (qx + 1e-10);
+  //hsv[2] = qx;
+  return hsv;
+}
 
 Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
 byte gammatable[256];
@@ -25,55 +54,32 @@ byte gammatable[256];
 
 char detectColor() {
   float red, green, blue;
-  char results[3];  // Array to store the results of five readings
 
-  for (int i = 0; i < 3; i++) {
-    tcs.setInterrupt(false);  // Turn on LED
-    delay(60);                // Wait for the color reading to stabilize
-    tcs.getRGB(&red, &green, &blue);
-    tcs.setInterrupt(true);  // Turn off LED
+  tcs.setInterrupt(true);  // turn on LED
 
-    // Determine the color based on the RGB values
-    if (red > green && red > blue) {
-      results[i] = 'R';  // Red
-    } else if (green > red && green > blue) {
-      results[i] = 'G';  // Green
-    } else if (blue > red && blue > green) {
-      results[i] = 'B';  // Blue
-    } else {
-      results[i] = 'U';  // Unknown
-    }
-  }
+  delay(60);  // takes 50ms to read
 
-  // Count the occurrences of each result
-  int countR = 0, countG = 0, countB = 0, countU = 0;
-  for (int i = 0; i < 3; i++) {
-    switch (results[i]) {
-      case 'R':
-        countR++;
-        break;
-      case 'G':
-        countG++;
-        break;
-      case 'B':
-        countB++;
-        break;
-      case 'U':
-        countU++;
-        break;
-    }
-  }
+  tcs.getRGB(&red, &green, &blue);
 
-  // Determine the most frequent color
-  if (countR > countG && countR > countB && countR > countU) {
-    return 'R';  // Red is most frequent
-  } else if (countG > countR && countG > countB && countG > countU) {
-    return 'G';  // Green is most frequent
-  } else if (countB > countR && countB > countG && countB > countU) {
-    return 'B';  // Blue is most frequent
+  tcs.setInterrupt(true);  // turn off LED
+
+  float hue = rgb2hsv(red, green, blue);
+  Serial.println(hue);
+
+  if ((hue > 0.75 || hue <= 0.15)) {  // Red range adjusted to cover around 0.97 and wrap from 1 to 0
+    return 'R';
+  } else if (hue > 0.15 && hue <= 0.33) {  // Green range now centered at 0.25 with a width of 0.2
+    return 'G';
+  } else if (hue > 0.33 && hue <= 0.75) {  // Blue range adjusted to fit without overlapping
+    return 'B';
   } else {
-    return 'U';  // Unknown or no clear majority
+    return 'U';  // This will now only be for unexpected values outside the range [0,1]
   }
+
+
+
+
+  return hue;
 }
 
 
@@ -104,7 +110,7 @@ void moveToXY(float X, float Z, int myspeed) {
   float theta1Deg = theta1 * radToDeg;
   float theta2Deg = theta2 * radToDeg;
 
-  Serial.println(theta1Deg);
+  //Serial.println(theta1Deg);
 
   moveXYWithAbsoluteCoordination(theta1Deg, theta2Deg, myspeed, myspeed / 1.3);
 }
@@ -123,7 +129,7 @@ void moveToXYYY(float X, float Z, int myspeed, float YYY) {
   float theta1Deg = theta1 * radToDeg;
   float theta2Deg = theta2 * radToDeg;
 
-  Serial.println(theta1Deg);
+  //Serial.println(theta1Deg);
 
   moveXYWithAbsoluteCoordinationYYY(theta1Deg, theta2Deg, myspeed, myspeed / 1.3, YYY);
 }
@@ -152,6 +158,8 @@ void GripperClose() {
 void setup() {
   Serial.begin(9600);
   pinMode(buttonRpin, INPUT_PULLUP);
+  pinMode(3, OUTPUT);
+  digitalWrite(3, HIGH);
   if (tcs.begin()) {
     Serial.println("Found sensor");
   } else {
@@ -159,6 +167,7 @@ void setup() {
     while (1)
       ;
   }
+  tcs.setInterrupt(false);
 
   for (int i = 0; i < 256; i++) {
     float x = i;
@@ -202,7 +211,7 @@ void setup() {
 
   stepper_P1.moveToHomeInSteps(-1, 1000, 10000, 27);
 
-  moveP1(32.0);
+  moveP1(31.0);
 
   pinMode(motorPin1_P1, OUTPUT);
   pinMode(motorPin2_P1, OUTPUT);
@@ -212,7 +221,6 @@ void setup() {
   GripperOpen();
 
   while (digitalRead(buttonRpin) == 1) {}
-
 
   float blockLocations[9][2] = {
     { 205.2, 66.2 },
@@ -267,6 +275,7 @@ void setup() {
     moveToXY(blockLocations[i][0] - 30.0, blockLocations[i][1] + 30.0, goSpeed);
     moveToXY(100.0, 50.0, goSpeed);
     char currentColor = detectColor();
+    //while (digitalRead(buttonRpin) == 1) {}
     // go to grid
 
     Serial.println(currentColor);
@@ -321,7 +330,6 @@ float curZ = 271.962;
 void loop() {
   char currentColor = detectColor();
   Serial.println(currentColor);
-  delay(100);
 }
 
 float currentAngle1 = 100.0;
@@ -350,7 +358,7 @@ void moveXYWithAbsoluteCoordination(float targetPosition1, float targetPosition2
 
   float realMoveAngle2 = moveAngle2 - moveAngle1;
 
-  Serial.println(moveAngle1);
+  //Serial.println(moveAngle1);
 
   int moveSteps1 = static_cast<int>(round((moveAngle1 * stepsPerRevolution / 360.0)));
   int moveSteps2 = static_cast<int>(round((realMoveAngle2 * stepsPerRevolution / 360.0)));
@@ -377,7 +385,7 @@ void moveXYWithAbsoluteCoordination(float targetPosition1, float targetPosition2
     accelerationInStepsPerSecondPerSecond_1 = accelerationInStepsPerSecondPerSecond_1 * scaler;
   }
 
-  Serial.println(moveSteps1);
+  //Serial.println(moveSteps1);
 
   stepper_RA1.setSpeedInStepsPerSecond(speedInStepsPerSecond_1);
   stepper_RA1.setAccelerationInStepsPerSecondPerSecond(accelerationInStepsPerSecondPerSecond_1);
@@ -433,7 +441,7 @@ void moveXYWithAbsoluteCoordinationYYY(float targetPosition1, float targetPositi
 
   float realMoveAngle2 = moveAngle2 - moveAngle1;
 
-  Serial.println(moveAngle1);
+  //Serial.println(moveAngle1);
 
   int moveSteps1 = static_cast<int>(round((moveAngle1 * stepsPerRevolution / 360.0)));
   int moveSteps2 = static_cast<int>(round((realMoveAngle2 * stepsPerRevolution / 360.0)));
@@ -460,7 +468,7 @@ void moveXYWithAbsoluteCoordinationYYY(float targetPosition1, float targetPositi
     accelerationInStepsPerSecondPerSecond_1 = accelerationInStepsPerSecondPerSecond_1 * scaler;
   }
 
-  Serial.println(moveSteps1);
+  //Serial.println(moveSteps1);
 
   stepper_RA1.setSpeedInStepsPerSecond(speedInStepsPerSecond_1);
   stepper_RA1.setAccelerationInStepsPerSecondPerSecond(accelerationInStepsPerSecondPerSecond_1);
