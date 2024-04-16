@@ -82,7 +82,7 @@ void moveToXY(float X, float Z, int myspeed) {
 void moveP1(float Y) {
   //float y = Y * 200 / 5;
   //stepper_P1.moveToPositionInSteps(y);
-  accelP1.moveTo(-Y * 200 / 5);
+  accelP1.moveTo(-Y * 200 / 5 / 3);
   accelP1.runToPosition();
 }
 
@@ -144,7 +144,7 @@ void setup() {
   accelP1.setMaxSpeed(P1max);     //  steps/s
   accelP1.setAcceleration(4000);  // steps/s^2
 
-  stepper_P1.setSpeedInStepsPerSecond(2500);
+  stepper_P1.setSpeedInStepsPerSecond(1200);
   stepper_P1.setAccelerationInStepsPerSecondPerSecond(4000);
 
   stepper_RA1.moveToHomeInSteps(1, 800, maxHomingDistanceInMM, 23);
@@ -159,6 +159,9 @@ void setup() {
   delay(500);
 
   //Serial.begin(9600);
+  stepper_P1.setAccelerationInStepsPerSecondPerSecond(10000);
+
+  GripperOpen();
 }
 
 float curX = 100.0;
@@ -169,86 +172,73 @@ int P1maxSpeed = 60000;
 int state = 1;
 int prevstate = state;
 int P1determinedSpeed = 300;
+int P1steps = 500;
+int P1speed = 0;
 
 void loop() {
-  joyLY = analogRead(joyLXpin);
-  joyLX = analogRead(joyLYpin);
   joyRX = analogRead(joyRXpin);
-  joyRY = analogRead(joyRYpin);
-
+  P1speed = map(joyRX, 0, 1023, -1500, 1500);
   buttonL = digitalRead(buttonLpin);
-  buttonR = digitalRead(buttonRpin);
 
-  //String output = "LX: " + String(joyLX) + ", LY: " + String(joyLY) + ", RX: " + String(joyRX) + ", RY: " + String(joyRY) + ", ButtonL: " + String(buttonL) + ", ButtonR: " + String(buttonR);
-  //Serial.println(output);
-
-  int P1speed = map(joyRX, 0, 1023, -P1maxSpeed, P1maxSpeed);
-  float Xspeed = map(joyLY, 0, 1023, -100, 100);
-  float Zspeed = map(joyLX, 0, 1023, 100, -100);
-
-  //Serial.println(P1speed);
-
-
-  if (abs(P1speed) > 600) {
-    if (P1speed < 0) {
-      digitalWrite(motorPin2_P1, HIGH);
-      state = -1;
-      if (prevstate != state) {
-        for (int i = 5000; i > P1determinedSpeed; i -= 5) {
-          digitalWrite(motorPin1_P1, HIGH);
-          digitalWrite(motorPin1_P1, LOW);
-          delayMicroseconds(i);
-        }
-      } else {
-        digitalWrite(motorPin1_P1, HIGH);
-        digitalWrite(motorPin1_P1, LOW);
-        delayMicroseconds(P1determinedSpeed);
-      }
-    } else {
-      digitalWrite(motorPin2_P1, LOW);
-      state = 1;
-      if (prevstate != state) {
-        for (int i = 5000; i > P1determinedSpeed; i -= 5) {
-          digitalWrite(motorPin1_P1, HIGH);
-          digitalWrite(motorPin1_P1, LOW);
-          delayMicroseconds(i);
-        }
-      } else {
-        digitalWrite(motorPin1_P1, HIGH);
-        digitalWrite(motorPin1_P1, LOW);
-        delayMicroseconds(P1determinedSpeed);
-      }
-    }
+  if (buttonL == 0) {
+    stepper_P1.setSpeedInStepsPerSecond(350);
+  } else {
+    stepper_P1.setSpeedInStepsPerSecond(1200);
   }
 
-  prevstate = state;
+  if (abs(P1speed) > 100) {
+    //stepper_P1.moveRelativeInSteps(P1speed);
+    if (P1speed > 0) {
+      stepper_P1.setupRelativeMoveInSteps(-1000000000);
+    } else {
+      stepper_P1.setupRelativeMoveInSteps(1000000000);
+    }
+    while (!stepper_P1.processMovement()) {
+      joyRX = analogRead(joyRXpin);
+      P1speed = map(joyRX, 0, 1023, -1500, 1500);
+      //stepper_P1.setSpeedInStepsPerSecond(abs(P1speed));
+      if (abs(P1speed) < 50) {
+        break;
+      }
+    }
+  } else {
+    float Xspeed = map(joyLY, 0, 1023, 100, -100);
+    float Zspeed = map(joyLX, 0, 1023, -100, 100);
 
+    joyLY = analogRead(joyLXpin);
+    joyLX = analogRead(joyLYpin);
+    joyRY = analogRead(joyRYpin);
+
+    buttonR = digitalRead(buttonRpin);
+    if (buttonR == 0 && state == 0) {
+      GripperOpen();
+      state = 1;
+      delay(500);
+    } else if (buttonR == 0 && state == 1) {
+      GripperClose();
+      state = 0;
+      delay(500);
+    }
+
+    int moveMultiplier = 125;
+
+    if (Xspeed > 30) {
+      curX += Xspeed / moveMultiplier;
+    } else if (Xspeed < -30) {
+      curX += Xspeed / moveMultiplier;
+    }
+
+    if (Zspeed > 30) {
+      curZ += Zspeed / moveMultiplier;
+    } else if (Zspeed < -30) {
+      curZ += Zspeed / moveMultiplier;
+    }
+
+    moveToXY(curX, curZ, 7000);
+  }
 
   //output = "P1 Speed: " + String(P1speed) + ", X Speed: " + String(Xspeed) + ", Yspeed: " + String(Yspeed);
   //Serial.println(output);
-
-
-  if (buttonL == 0) {
-    GripperOpen();
-  } else if (buttonR == 0) {
-    GripperClose();
-  }
-
-  int moveMultiplier = 125;
-
-  if (Xspeed > 30) {
-    curX += Xspeed / moveMultiplier;
-  } else if (Xspeed < -30) {
-    curX += Xspeed / moveMultiplier;
-  }
-
-  if (Zspeed > 30) {
-    curZ += Zspeed / moveMultiplier;
-  } else if (Zspeed < -30) {
-    curZ += Zspeed / moveMultiplier;
-  }
-
-  moveToXY(curX, curZ, 7000);
 }
 
 float currentAngle1 = 100.0;
