@@ -16,31 +16,66 @@
 
 #define buttonRpin 43
 
+const int realP1Speed = 2300;
+const int realP1Accel = 3200;
+
 Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
 byte gammatable[256];
 #define commonAnode true
 
 char detectColor() {
   float red, green, blue;
+  char results[3];  // Array to store the results of five readings
 
-  tcs.setInterrupt(false);  // turn on LED
+  for (int i = 0; i < 3; i++) {
+    tcs.setInterrupt(false);  // Turn on LED
+    delay(60);                // Wait for the color reading to stabilize
+    tcs.getRGB(&red, &green, &blue);
+    tcs.setInterrupt(true);  // Turn off LED
 
-  delay(60);  // takes 50ms to read
+    // Determine the color based on the RGB values
+    if (red > green && red > blue) {
+      results[i] = 'R';  // Red
+    } else if (green > red && green > blue) {
+      results[i] = 'G';  // Green
+    } else if (blue > red && blue > green) {
+      results[i] = 'B';  // Blue
+    } else {
+      results[i] = 'U';  // Unknown
+    }
+  }
 
-  tcs.getRGB(&red, &green, &blue);
+  // Count the occurrences of each result
+  int countR = 0, countG = 0, countB = 0, countU = 0;
+  for (int i = 0; i < 3; i++) {
+    switch (results[i]) {
+      case 'R':
+        countR++;
+        break;
+      case 'G':
+        countG++;
+        break;
+      case 'B':
+        countB++;
+        break;
+      case 'U':
+        countU++;
+        break;
+    }
+  }
 
-  tcs.setInterrupt(true);  // turn off LED
-
-  if (red > green && red > blue) {
-    return 'R';  // Note the single quotes, which denote a char
-  } else if (green > red && green > blue) {
-    return 'G';  // Note the single quotes, which denote a char
-  } else if (blue > red && blue > green) {
-    return 'B';  // Note the single quotes, which denote a char
+  // Determine the most frequent color
+  if (countR > countG && countR > countB && countR > countU) {
+    return 'R';  // Red is most frequent
+  } else if (countG > countR && countG > countB && countG > countU) {
+    return 'G';  // Green is most frequent
+  } else if (countB > countR && countB > countG && countB > countU) {
+    return 'B';  // Blue is most frequent
   } else {
-    return 'U';  // Note the single quotes, which denote a char for 'Unknown'
+    return 'U';  // Unknown or no clear majority
   }
 }
+
 
 int Rcount = 0;
 int Gcount = 0;
@@ -72,6 +107,25 @@ void moveToXY(float X, float Z, int myspeed) {
   Serial.println(theta1Deg);
 
   moveXYWithAbsoluteCoordination(theta1Deg, theta2Deg, myspeed, myspeed / 1.3);
+}
+
+void moveToXYYY(float X, float Z, int myspeed, float YYY) {
+  const float radToDeg = 180.0 / PI;
+
+  float x = static_cast<float>(X);
+  float z = static_cast<float>(Z);
+
+  const float pi = 3.14159265;
+
+  float theta2 = acos((x * x + z * z - L1 * L1 - L2 * L2) / (2 * L1 * L2));
+  float theta1 = atan2(z, x) - atan2((L2 * sin(2 * pi - theta2)), (L1 + L2 * cos(2 * pi - theta2)));
+
+  float theta1Deg = theta1 * radToDeg;
+  float theta2Deg = theta2 * radToDeg;
+
+  Serial.println(theta1Deg);
+
+  moveXYWithAbsoluteCoordinationYYY(theta1Deg, theta2Deg, myspeed, myspeed / 1.3, YYY);
 }
 
 void moveP1(float Y) {
@@ -136,8 +190,8 @@ void setup() {
   stepper_RA2.setSpeedInStepsPerSecond(speedAccel);
   stepper_RA2.setAccelerationInStepsPerSecondPerSecond(speedAccel);
 
-  stepper_P1.setSpeedInStepsPerSecond(2500);
-  stepper_P1.setAccelerationInStepsPerSecondPerSecond(4000);
+  stepper_P1.setSpeedInStepsPerSecond(realP1Speed);
+  stepper_P1.setAccelerationInStepsPerSecondPerSecond(realP1Accel);
 
   const float maxHomingDistanceInMM = 20000;
 
@@ -173,21 +227,21 @@ void setup() {
   };
 
   const float redCoordinates[3][3] = {
-    { 212.0, 262.3, 200.0  - 5.0},
-    { 212.0, 262.3, 110.0 - 5.0},
-    { 212.0, 262.3, 20.0  - 5.0}
+    { 212.0, 262.3, 200.0 - 5.0 },
+    { 212.0, 262.3, 110.0 - 5.0 },
+    { 212.0, 262.3, 20.0 - 5.0 }
   };
 
   const float greenCoordinates[3][3] = {
     { 212.0, 133.52, 200.0 - 5.0 },
-    { 212.0, 133.52, 110.0 - 5.0},
-    { 212.0, 133.52, 20.0 - 5.0}
+    { 212.0, 133.52, 110.0 - 5.0 },
+    { 212.0, 133.52, 20.0 - 5.0 }
   };
 
   const float blueCoordinates[3][3] = {
-    { 212.0, 390.78, 200.0 - 5.0},
-    { 212.0, 390.78, 110.0 - 5.0},
-    { 212.0, 390.78, 20.0 - 5.0}
+    { 212.0, 390.78, 200.0 - 5.0 },
+    { 212.0, 390.78, 110.0 - 5.0 },
+    { 212.0, 390.78, 20.0 - 5.0 }
   };
 
   int goSpeed = 7000;
@@ -200,7 +254,7 @@ void setup() {
 
   float Xsafe = 80.0;
 
-  int gripperOpenDelay = 250;
+  int gripperOpenDelay = 350;
 
   int globalDelay = 10;
 
@@ -218,8 +272,8 @@ void setup() {
     Serial.println(currentColor);
 
     if (currentColor == 'R') {
-      moveToXY(redCoordinates[Rcount][0] - Xsafe, redCoordinates[Rcount][2], goSpeed);
-      moveP1(redCoordinates[Rcount][1] + redoffset);
+      moveToXYYY(redCoordinates[Rcount][0] - Xsafe, redCoordinates[Rcount][2], goSpeed, redCoordinates[Rcount][1] + redoffset);
+      //moveP1(redCoordinates[Rcount][1] + redoffset);
       delay(globalDelay);
       //moveToXY(redCoordinates[Rcount][0] - Xsafe, redCoordinates[Rcount][2], goSpeed);
       delay(globalDelay);
@@ -229,8 +283,8 @@ void setup() {
       moveToXY(redCoordinates[Rcount][0] - Xsafe, redCoordinates[Rcount][2], goSpeed);
       Rcount++;
     } else if (currentColor == 'G') {
-      moveToXY(greenCoordinates[Gcount][0] - Xsafe, greenCoordinates[Gcount][2], goSpeed);
-      moveP1(greenCoordinates[Gcount][1] + greenoffset);
+      moveToXYYY(greenCoordinates[Gcount][0] - Xsafe, greenCoordinates[Gcount][2], goSpeed, greenCoordinates[Gcount][1] + greenoffset);
+      //moveP1(greenCoordinates[Gcount][1] + greenoffset);
       delay(globalDelay);
       //moveToXY(greenCoordinates[Gcount][0] - Xsafe, greenCoordinates[Gcount][2], goSpeed);
       delay(globalDelay);
@@ -240,8 +294,8 @@ void setup() {
       moveToXY(greenCoordinates[Gcount][0] - Xsafe, greenCoordinates[Gcount][2], goSpeed);
       Gcount++;
     } else if (currentColor == 'B') {
-      moveToXY(blueCoordinates[Bcount][0] - Xsafe, blueCoordinates[Bcount][2], goSpeed);
-      moveP1(blueCoordinates[Bcount][1] + blueoffset);
+      moveToXYYY(blueCoordinates[Bcount][0] - Xsafe, blueCoordinates[Bcount][2], goSpeed, blueCoordinates[Bcount][1] + blueoffset);
+      //moveP1(blueCoordinates[Bcount][1] + blueoffset);
       delay(globalDelay);
       //moveToXY(blueCoordinates[Bcount][0] - Xsafe, blueCoordinates[Bcount][2], goSpeed);
       delay(globalDelay);
@@ -254,9 +308,10 @@ void setup() {
 
     delay(globalDelay);
 
-    moveToXY(125.0, 50, goSpeed);
-
-    moveP1(32.0);
+    if (i == 8) {
+      delay(8000);
+    }
+    moveToXYYY(130.0, 66.2, goSpeed, 31.0);
   }
 }
 
@@ -335,6 +390,95 @@ void moveXYWithAbsoluteCoordination(float targetPosition1, float targetPosition2
   while ((!stepper_RA1.motionComplete()) || (!stepper_RA2.motionComplete())) {
     stepper_RA1.processMovement();
     stepper_RA2.processMovement();
+  }
+
+  currentAngle1 += moveAngle1;
+  currentAngle2 += moveAngle2;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+void moveXYWithAbsoluteCoordinationYYY(float targetPosition1, float targetPosition2, float speedInStepsPerSecond, float accelerationInStepsPerSecondPerSecond, float YYY) {
+  float y = YYY * 200 / 5 / 3;
+
+  const float stepsPerRevolution = 200.0 * 4.0 * 4.0;  // 200 steps per rev, 4x gear ratio, 4x microstepping
+  float speedInStepsPerSecond_1;
+  float accelerationInStepsPerSecondPerSecond_1;
+  float speedInStepsPerSecond_2;
+  float accelerationInStepsPerSecondPerSecond_2;
+  float moveAngle1 = 0.0;
+  float moveAngle2 = 0.0;
+  int absSteps1;
+  int absSteps2;
+  float ra1Offset;
+
+  speedInStepsPerSecond_1 = speedInStepsPerSecond;
+  accelerationInStepsPerSecondPerSecond_1 = accelerationInStepsPerSecondPerSecond;
+
+  speedInStepsPerSecond_2 = speedInStepsPerSecond;
+  accelerationInStepsPerSecondPerSecond_2 = accelerationInStepsPerSecondPerSecond;
+
+  moveAngle1 = targetPosition1 - currentAngle1;
+  moveAngle2 = targetPosition2 - currentAngle2;
+
+  float realMoveAngle2 = moveAngle2 - moveAngle1;
+
+  Serial.println(moveAngle1);
+
+  int moveSteps1 = static_cast<int>(round((moveAngle1 * stepsPerRevolution / 360.0)));
+  int moveSteps2 = static_cast<int>(round((realMoveAngle2 * stepsPerRevolution / 360.0)));
+
+  if (moveSteps1 >= 0)
+    absSteps1 = moveSteps1;
+  else
+    absSteps1 = -moveSteps1;
+
+  if (moveSteps2 >= 0)
+    absSteps2 = moveSteps2;
+  else
+    absSteps2 = -moveSteps2;
+
+  if ((absSteps1 > absSteps2) && (moveSteps1 != 0)) {
+    float scaler = (float)absSteps2 / (float)absSteps1;
+    speedInStepsPerSecond_2 = speedInStepsPerSecond_2 * scaler;
+    accelerationInStepsPerSecondPerSecond_2 = accelerationInStepsPerSecondPerSecond_2 * scaler;
+  }
+
+  if ((absSteps2 > absSteps1) && (moveSteps2 != 0)) {
+    float scaler = (float)absSteps1 / (float)absSteps2;
+    speedInStepsPerSecond_1 = speedInStepsPerSecond_1 * scaler;
+    accelerationInStepsPerSecondPerSecond_1 = accelerationInStepsPerSecondPerSecond_1 * scaler;
+  }
+
+  Serial.println(moveSteps1);
+
+  stepper_RA1.setSpeedInStepsPerSecond(speedInStepsPerSecond_1);
+  stepper_RA1.setAccelerationInStepsPerSecondPerSecond(accelerationInStepsPerSecondPerSecond_1);
+  stepper_RA1.setupRelativeMoveInSteps(moveSteps1);
+
+  stepper_RA2.setSpeedInStepsPerSecond(speedInStepsPerSecond_2);
+  stepper_RA2.setAccelerationInStepsPerSecondPerSecond(accelerationInStepsPerSecondPerSecond_2);
+  stepper_RA2.setupRelativeMoveInSteps(moveSteps2);
+
+  stepper_P1.setSpeedInStepsPerSecond(realP1Speed);
+  stepper_P1.setAccelerationInStepsPerSecondPerSecond(realP1Accel);
+
+  stepper_P1.setupMoveInSteps(y);
+
+  while ((!stepper_RA1.motionComplete()) || (!stepper_RA2.motionComplete()) || (!stepper_P1.motionComplete())) {
+    stepper_RA1.processMovement();
+    stepper_RA2.processMovement();
+    stepper_P1.processMovement();
   }
 
   currentAngle1 += moveAngle1;
