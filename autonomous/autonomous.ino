@@ -16,8 +16,8 @@
 
 #define buttonRpin 43
 
-const int realP1Speed = 2000;
-const int realP1Accel = 3000;
+const int realP1Speed = 2500;
+const int realP1Accel = 3400;
 
 float fract(float x) {
   return x - int(x);
@@ -140,7 +140,7 @@ void moveP1(float Y) {
 }
 
 Servo Gripper;
-const int gripperOpenPos = 60;
+const int gripperOpenPos = 120;
 const int gripperClosedPos = 180;
 
 const int GripperPin = 5;
@@ -252,7 +252,7 @@ void setup() {
     { 212.0, 390.78, 20.0 }
   };
 
-  int goSpeed = 7000;
+  int goSpeed = 8500;
 
   float p1offset = 145.0;
 
@@ -262,11 +262,15 @@ void setup() {
 
   float Xsafe = 80.0;
 
-  int gripperOpenDelay = 350;
+  int gripperOpenDelay = 110;
 
-  int globalDelay = 10;
+  int globalDelay = 5;
 
   for (int i = 0; i < 9; i++) {
+    if (i >= 7) {
+      goSpeed = 7000;
+    }
+
     GripperOpen();
     moveToXY(blockLocations[i][0] - 30.0, blockLocations[i][1], goSpeed);
     delay(globalDelay);
