@@ -16,8 +16,8 @@
 
 #define buttonRpin 43
 
-const int realP1Speed = 2500;
-const int realP1Accel = 3400;
+const int realP1Speed = 2700;
+const int realP1Accel = 3450;
 
 float fract(float x) {
   return x - int(x);
@@ -140,7 +140,7 @@ void moveP1(float Y) {
 }
 
 Servo Gripper;
-const int gripperOpenPos = 120;
+const int gripperOpenPos = 100;
 const int gripperClosedPos = 180;
 
 const int GripperPin = 5;
@@ -252,7 +252,7 @@ void setup() {
     { 212.0, 390.78, 20.0 }
   };
 
-  int goSpeed = 8500;
+  int goSpeed = 9000;
 
   float p1offset = 145.0;
 
@@ -262,13 +262,15 @@ void setup() {
 
   float Xsafe = 80.0;
 
-  int gripperOpenDelay = 110;
+  int gripperOpenDelay = 160;
 
-  int globalDelay = 5;
+  int globalDelay = 1;
 
   for (int i = 0; i < 9; i++) {
     if (i >= 7) {
-      goSpeed = 7000;
+      goSpeed = 7500;
+    } else if (i >= 4) {
+      goSpeed = 8300;
     }
 
     GripperOpen();
@@ -276,11 +278,8 @@ void setup() {
     delay(globalDelay);
     GripperClose();
     delay(gripperOpenDelay);
-    moveToXY(blockLocations[i][0] - 30.0, blockLocations[i][1] + 30.0, goSpeed);
-    moveToXY(100.0, 50.0, goSpeed);
+    //moveToXY(blockLocations[i][0] - 30.0, blockLocations[i][1] + 10.0, goSpeed);
     char currentColor = detectColor();
-    //while (digitalRead(buttonRpin) == 1) {}
-    // go to grid
 
     Serial.println(currentColor);
 
